@@ -5,10 +5,9 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 export default function Home() {
-  const [quote, setQuote] = useState(getRandomQuote())
+  const [quote, setQuote] = useState<ReturnType<typeof getRandomQuote> | null>(null)
 
   useEffect(() => {
-    // 每次刷新页面换一条名言
     setQuote(getRandomQuote())
   }, [])
 
@@ -29,11 +28,12 @@ export default function Home() {
         </div>
 
         {/* Quote card */}
+        {quote && (
         <div className="max-w-2xl mx-auto mb-16">
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 text-center border border-white/50">
             <div className="text-4xl mb-4">💡</div>
             <blockquote className="text-lg text-gray-700 leading-relaxed mb-4 italic">
-              "{quote.text}"
+              &ldquo;{quote.text}&rdquo;
             </blockquote>
             <div className="flex items-center justify-center gap-2 text-gray-500">
               <span className="font-medium">— {quote.author}</span>
@@ -43,6 +43,7 @@ export default function Home() {
             </div>
           </div>
         </div>
+        )}
 
         {/* Feature cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
