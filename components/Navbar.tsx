@@ -6,10 +6,10 @@ import { usePathname } from 'next/navigation'
 const navItems = [
   { href: '/dashboard', label: '📊 进度', emoji: '📊' },
   { href: '/journal', label: '📝 日记', emoji: '📝' },
+  { href: '/review', label: '🔄 回顾', emoji: '🔄' },
   { href: '/companion', label: '🤖 AI', emoji: '🤖' },
   { href: '/checkin', label: '✅ 打卡', emoji: '✅' },
   { href: '/community', label: '💬 社群', emoji: '💬' },
-  { href: '/review', label: '🔄 回顾', emoji: '🔄' },
 ]
 
 export default function Navbar() {
@@ -43,6 +43,16 @@ export default function Navbar() {
                 </Link>
               )
             })}
+            <Link
+              href="/settings"
+              className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                pathname === '/settings'
+                  ? 'bg-gray-100 text-gray-700 font-medium'
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              ⚙️
+            </Link>
           </div>
 
           {/* Mobile menu button (placeholder) */}

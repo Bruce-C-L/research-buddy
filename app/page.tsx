@@ -61,16 +61,16 @@ export default function Home() {
               emoji: '🤖',
             },
             {
+              title: '⚙️ 设置',
+              desc: '配置 AI API、导出数据',
+              href: '/settings',
+              emoji: '⚙️',
+            },
+            {
               title: '📊 进度追踪',
               desc: '可视化科研进度，里程碑管理',
               href: '/dashboard',
               emoji: '📊',
-            },
-            {
-              title: '🔄 回顾系统',
-              desc: '周/月总结，对比历史，发现模式',
-              href: '/review',
-              emoji: '🔄',
             },
             {
               title: '✅ 自律打卡',

@@ -1,9 +1,38 @@
 // AI client for generating insights from journal entries
-// Uses OpenAI-compatible API (works with OpenAI, Claude via OpenRouter, etc.)
+// Supports both localStorage config (local dev) and env vars (deployment)
 
-const API_KEY = process.env.NEXT_PUBLIC_AI_API_KEY || ''
-const API_URL = process.env.NEXT_PUBLIC_AI_API_URL || 'https://api.openai.com/v1/chat/completions'
-const MODEL = process.env.NEXT_PUBLIC_AI_MODEL || 'gpt-4o-mini'
+import type { AIConfig } from '@/app/settings/page'
+
+function getAIConfig(): AIConfig | null {
+  // Priority 1: localStorage (set via Settings page)
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('ai_config')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (parsed.apiKey) return parsed
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // Priority 2: env vars (for deployment)
+  const envKey = process.env.NEXT_PUBLIC_AI_API_KEY
+  const envUrl = process.env.NEXT_PUBLIC_AI_API_URL
+  const envModel = process.env.NEXT_PUBLIC_AI_MODEL
+
+  if (envKey) {
+    return {
+      provider: 'openai',
+      apiKey: envKey,
+      apiUrl: envUrl || 'https://api.openai.com/v1/chat/completions',
+      model: envModel || 'gpt-4o-mini',
+    }
+  }
+
+  return null
+}
 
 export interface JournalEntry {
   id: string
@@ -23,8 +52,10 @@ export interface ReviewResult {
 }
 
 export async function generateReview(entries: JournalEntry[]): Promise<ReviewResult> {
-  if (!API_KEY) {
-    throw new Error('请配置 AI API Key（NEXT_PUBLIC_AI_API_KEY）')
+  const config = getAIConfig()
+
+  if (!config) {
+    throw new Error('请先在 ⚙️ 设置中配置 AI API Key，或联系管理员')
   }
 
   if (entries.length === 0) {
@@ -34,7 +65,7 @@ export async function generateReview(entries: JournalEntry[]): Promise<ReviewRes
   // Prepare journal entries for the prompt
   const entriesText = entries
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-    .map((e, i) => {
+    .map((e) => {
       const date = new Date(e.createdAt).toLocaleDateString('zh-CN', {
         month: 'short',
         day: 'numeric',
@@ -55,14 +86,14 @@ export async function generateReview(entries: JournalEntry[]): Promise<ReviewRes
   "highlights": ["高光时刻1", "突破点2"]
 }`
 
-  const response = await fetch(API_URL, {
+  const response = await fetch(config.apiUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${API_KEY}`,
+      Authorization: `Bearer ${config.apiKey}`,
     },
     body: JSON.stringify({
-      model: MODEL,
+      model: config.model,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `以下是我的科研日记（共 ${entries.length} 篇），请分析：\n\n${entriesText}` },
