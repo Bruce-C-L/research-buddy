@@ -4,12 +4,13 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const navItems = [
-  { href: '/dashboard', label: '📊 进度', emoji: '📊' },
+  { href: '/dashboard', label: '📊 总览', emoji: '📊' },
   { href: '/journal', label: '📝 日记', emoji: '📝' },
   { href: '/review', label: '🔄 回顾', emoji: '🔄' },
   { href: '/companion', label: '🤖 AI', emoji: '🤖' },
   { href: '/checkin', label: '✅ 打卡', emoji: '✅' },
   { href: '/community', label: '💬 社群', emoji: '💬' },
+  { href: '/milestones', label: '🎯 目标', emoji: '🎯' },
 ]
 
 export default function Navbar() {

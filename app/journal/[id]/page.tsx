@@ -2,46 +2,58 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { ACTIVITY_CATEGORIES, type JournalEntry, type Milestone } from '@/lib/types'
+import TaskList from '@/components/journal/TaskList'
 
-interface JournalEntry {
-  id: string
-  title: string
-  content: string
-  tags: string[]
-  createdAt: string
-  updatedAt: string
-  mood?: string
-}
+const categoryMap = ACTIVITY_CATEGORIES.reduce(
+  (acc, cat) => {
+    acc[cat.id] = cat
+    return acc
+  },
+  {} as Record<string, (typeof ACTIVITY_CATEGORIES)[number]>
+)
 
 export default function JournalEntry({ params }: { params: { id: string } }) {
   const [entry, setEntry] = useState<JournalEntry | null>(null)
+  const [milestones, setMilestones] = useState<Milestone[]>([])
   const [isEditing, setIsEditing] = useState(false)
-  const [editTitle, setEditTitle] = useState('')
-  const [editContent, setEditContent] = useState('')
-  const [editTags, setEditTags] = useState('')
+
+  // Edit state
+  const [editGains, setEditGains] = useState('')
+  const [editReflection, setEditReflection] = useState('')
+  const [editTomorrowPlan, setEditTomorrowPlan] = useState('')
+  const [editLinkedMilestone, setEditLinkedMilestone] = useState('')
+  const [editMood, setEditMood] = useState('')
 
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem('journal_entries') || '[]')
     const found = stored.find((e: JournalEntry) => e.id === params.id)
     if (found) {
       setEntry(found)
-      setEditTitle(found.title)
-      setEditContent(found.content)
-      setEditTags(found.tags.join(', '))
+      setEditGains(found.gains || '')
+      setEditReflection(found.reflection || '')
+      setEditTomorrowPlan(found.tomorrowPlan || '')
+      setEditLinkedMilestone(found.linkedMilestone || '')
+      setEditMood(found.mood || '')
     }
+
+    const ms = JSON.parse(localStorage.getItem('milestones') || '[]')
+    setMilestones(ms)
   }, [params.id])
 
   const handleSave = () => {
-    if (!editTitle.trim() || !editContent.trim()) return
+    if (!entry) return
 
     const stored = JSON.parse(localStorage.getItem('journal_entries') || '[]')
     const updated = stored.map((e: JournalEntry) =>
       e.id === params.id
         ? {
             ...e,
-            title: editTitle.trim(),
-            content: editContent.trim(),
-            tags: editTags.split(',').map((t) => t.trim()).filter(Boolean),
+            mood: editMood || undefined,
+            gains: editGains.trim(),
+            reflection: editReflection.trim(),
+            tomorrowPlan: editTomorrowPlan.trim(),
+            linkedMilestone: editLinkedMilestone || undefined,
             updatedAt: new Date().toISOString(),
           }
         : e
@@ -57,7 +69,7 @@ export default function JournalEntry({ params }: { params: { id: string } }) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-500 mb-4">日记不存在或已被删除</p>
+          <p className="text-gray-500 mb-4">记录不存在或已被删除</p>
           <Link href="/journal" className="text-blue-600 hover:underline">
             返回日记列表
           </Link>
@@ -66,20 +78,25 @@ export default function JournalEntry({ params }: { params: { id: string } }) {
     )
   }
 
-  const formatFullDate = (dateStr: string) => {
+  const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('zh-CN', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       weekday: 'long',
-      hour: '2-digit',
-      minute: '2-digit',
     })
   }
 
+  const linkedMilestone = milestones.find((m) => m.id === entry.linkedMilestone)
+  const totalTasks = (entry.morningTasks?.length || 0) + (entry.completedTasks?.length || 0)
+  const completedCount = [
+    ...(entry.morningTasks || []),
+    ...(entry.completedTasks || []),
+  ].filter((t) => t.completed).length
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <Link
@@ -107,9 +124,11 @@ export default function JournalEntry({ params }: { params: { id: string } }) {
                 <button
                   onClick={() => {
                     setIsEditing(false)
-                    setEditTitle(entry.title)
-                    setEditContent(entry.content)
-                    setEditTags(entry.tags.join(', '))
+                    setEditGains(entry.gains || '')
+                    setEditReflection(entry.reflection || '')
+                    setEditTomorrowPlan(entry.tomorrowPlan || '')
+                    setEditLinkedMilestone(entry.linkedMilestone || '')
+                    setEditMood(entry.mood || '')
                   }}
                   className="text-sm text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
                 >
@@ -120,78 +139,170 @@ export default function JournalEntry({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        {/* Entry content */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-8">
-          {!isEditing ? (
-            <>
-              <div className="flex items-center gap-3 mb-4">
-                {entry.mood && <span className="text-2xl">{entry.mood.split(' ')[0]}</span>}
-                <h1 className="text-2xl font-bold text-gray-900">{entry.title}</h1>
-              </div>
-
-              <div className="text-sm text-gray-400 mb-6 space-x-4">
-                <span>📅 {formatFullDate(entry.createdAt)}</span>
-                {entry.updatedAt !== entry.createdAt && (
-                  <span>· 编辑于 {formatFullDate(entry.updatedAt)}</span>
-                )}
-              </div>
-
-              {/* Tags */}
-              {entry.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {entry.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="px-3 py-1 bg-blue-50 text-blue-600 text-sm rounded-full"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+        {/* Stats bar */}
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 text-center">
+            <div className="text-lg font-bold text-blue-600">
+              {completedCount}/{totalTasks}
+            </div>
+            <div className="text-xs text-gray-500">任务完成</div>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 text-center">
+            <div className="text-lg font-bold text-green-600">
+              {[...(entry.morningTasks || []), ...(entry.completedTasks || [])].reduce(
+                (s, t) => s + (t.actualDuration || 0),
+                0
               )}
+            </div>
+            <div className="text-xs text-gray-500">实际工作(分钟)</div>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 text-center">
+            <div className="text-lg font-bold text-purple-600">
+              {entry.gains ? '有' : '无'}收获
+            </div>
+            <div className="text-xs text-gray-500">今日总结</div>
+          </div>
+        </div>
 
-              {/* Content */}
-              <div className="prose prose-gray max-w-none">
-                {entry.content.split('\n').map((para, i) => (
-                  <p key={i} className="text-gray-700 leading-relaxed whitespace-pre-wrap mb-3">
-                    {para}
-                  </p>
-                ))}
-              </div>
-            </>
-          ) : (
-            <div className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">标题</label>
-                <input
-                  type="text"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">内容</label>
-                <textarea
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  rows={12}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none resize-y"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">标签（逗号分隔）</label>
-                <input
-                  type="text"
-                  value={editTags}
-                  onChange={(e) => setEditTags(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-                />
-              </div>
+        {/* Content */}
+        <div className="space-y-6">
+          {/* Morning Tasks */}
+          {(entry.morningTasks?.length || 0) > 0 && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                📋 今日计划
+              </h3>
+              <TaskList
+                tasks={entry.morningTasks || []}
+                onToggle={() => {}}
+                onDelete={() => {}}
+                onUpdateActual={() => {}}
+                readonly
+              />
             </div>
           )}
+
+          {/* Completed Tasks */}
+          {(entry.completedTasks?.length || 0) > 0 && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                ✅ 实际完成
+              </h3>
+              <TaskList
+                tasks={entry.completedTasks || []}
+                onToggle={() => {}}
+                onDelete={() => {}}
+                onUpdateActual={() => {}}
+                readonly
+              />
+            </div>
+          )}
+
+          {/* Gains */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              💡 今日收获
+            </h3>
+            {isEditing ? (
+              <textarea
+                value={editGains}
+                onChange={(e) => setEditGains(e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-400 outline-none resize-y text-sm leading-relaxed"
+              />
+            ) : (
+              entry.gains && (
+                <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  {entry.gains}
+                </div>
+              )
+            )}
+            {!entry.gains && !isEditing && (
+              <p className="text-gray-400 text-sm">还没有记录收获</p>
+            )}
+          </div>
+
+          {/* Reflection */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              🤔 反思与感悟
+            </h3>
+            {isEditing ? (
+              <textarea
+                value={editReflection}
+                onChange={(e) => setEditReflection(e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-400 outline-none resize-y text-sm leading-relaxed"
+              />
+            ) : (
+              entry.reflection && (
+                <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  {entry.reflection}
+                </div>
+              )
+            )}
+            {!entry.reflection && !isEditing && (
+              <p className="text-gray-400 text-sm">还没有写反思</p>
+            )}
+          </div>
+
+          {/* Tomorrow's Plan */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              📅 明日规划
+            </h3>
+            {isEditing ? (
+              <textarea
+                value={editTomorrowPlan}
+                onChange={(e) => setEditTomorrowPlan(e.target.value)}
+                rows={3}
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-400 outline-none resize-y text-sm leading-relaxed"
+              />
+            ) : (
+              entry.tomorrowPlan && (
+                <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  {entry.tomorrowPlan}
+                </div>
+              )
+            )}
+            {!entry.tomorrowPlan && !isEditing && (
+              <p className="text-gray-400 text-sm">还没有规划明天</p>
+            )}
+          </div>
+
+          {/* Linked Milestone */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              🎯 关联里程碑
+            </h3>
+            {isEditing ? (
+              <select
+                value={editLinkedMilestone}
+                onChange={(e) => setEditLinkedMilestone(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:border-blue-400 outline-none"
+              >
+                <option value="">— 不关联 —</option>
+                {milestones.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.title} {m.completed ? '✅' : ''} (截止: {m.deadline})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              linkedMilestone ? (
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1.5 bg-blue-50 text-blue-700 text-sm rounded-full">
+                    🎯 {linkedMilestone.title}
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    截止: {linkedMilestone.deadline}
+                  </span>
+                </div>
+              ) : (
+                <p className="text-gray-400 text-sm">未关联里程碑</p>
+              )
+            )}
+          </div>
         </div>
       </div>
     </div>
