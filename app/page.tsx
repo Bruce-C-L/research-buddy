@@ -1,10 +1,22 @@
+'use client'
+
+import { getRandomQuote } from '@/lib/quotes'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 
 export default function Home() {
+  const [quote, setQuote] = useState(getRandomQuote())
+
+  useEffect(() => {
+    // 每次刷新页面换一条名言
+    setQuote(getRandomQuote())
+  }, [])
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <main className="container mx-auto px-4 py-16">
-        <div className="text-center mb-16">
+        {/* Hero section */}
+        <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
             🔬 ResearchBuddy
           </h1>
@@ -16,6 +28,23 @@ export default function Home() {
           </p>
         </div>
 
+        {/* Quote card */}
+        <div className="max-w-2xl mx-auto mb-16">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 text-center border border-white/50">
+            <div className="text-4xl mb-4">💡</div>
+            <blockquote className="text-lg text-gray-700 leading-relaxed mb-4 italic">
+              "{quote.text}"
+            </blockquote>
+            <div className="flex items-center justify-center gap-2 text-gray-500">
+              <span className="font-medium">— {quote.author}</span>
+              <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs rounded-full">
+                {quote.category}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Feature cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {[
             {
@@ -25,9 +54,9 @@ export default function Home() {
               emoji: '📝',
             },
             {
-              title: '🤖 AI 陪伴',
-              desc: '基于日记内容对话，情绪识别，提供支持和建议',
-              href: '/companion',
+              title: '🤖 AI 回顾',
+              desc: '基于历史日记智能分析，发现科研模式',
+              href: '/review',
               emoji: '🤖',
             },
             {
@@ -70,7 +99,7 @@ export default function Home() {
         </div>
 
         <div className="text-center mt-16 text-gray-400 text-sm">
-          <p>v0.1.0 · 原型阶段</p>
+          <p>v0.2.0 · 原型阶段</p>
         </div>
       </main>
     </div>
