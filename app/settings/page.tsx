@@ -27,6 +27,11 @@ const PROVIDER_PRESETS: Record<string, { url: string; model: string; label: stri
     model: 'anthropic/claude-3-5-haiku-20241022',
     label: 'OpenRouter',
   },
+  stepfun: {
+    url: 'https://api.stepfun.com/step_plan/v1/chat/completions',
+    model: 'step-3.7-flash',
+    label: 'StepFun',
+  },
   custom: {
     url: '',
     model: '',
@@ -114,7 +119,7 @@ export default function Settings() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               AI 服务商
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               {Object.entries(PROVIDER_PRESETS).map(([key, preset]) => (
                 <button
                   key={key}
@@ -129,6 +134,7 @@ export default function Settings() {
                   <div className="text-lg mb-1">
                     {key === 'openai' && '🟢'}
                     {key === 'openrouter' && '🔵'}
+                    {key === 'stepfun' && '🧠'}
                     {key === 'custom' && '⚙️'}
                   </div>
                   {preset.label}
